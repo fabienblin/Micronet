@@ -27,7 +27,7 @@ func TestObserver(t *testing.T) {
 		t.Error(err)
 	}
 	go func() {
-		err = pub.Server.Start()
+		err = pub.Start()
 		if err != nil {
 			t.Error(err)
 		}
@@ -38,7 +38,7 @@ func TestObserver(t *testing.T) {
 		t.Error(err)
 	}
 	go func() {
-		err = sub.Server.Start()
+		err = sub.Start()
 		if err != nil {
 			t.Error(err)
 		}

@@ -41,7 +41,7 @@ func NewClient(network common.NetConf) (*Client, error) {
 	cli := &Client{
 		remote: network,
 	}
-	
+
 	errDial := cli.Dial()
 	if errDial != nil {
 		return nil, errDial
@@ -80,29 +80,16 @@ func (c *Client) Call(serviceMethod string, request any, response any) error {
 		return fmt.Errorf("nil client")
 	}
 
-	var deferedError error
-	defer func() {
-		// normal call can panic if connection was lost
-		if r := recover(); r != nil {
-			deferedError := c.reconnect()
-			if deferedError != nil {
-				return
-			}
-
-			// retry to request
-			deferedError = c.Client.Call(serviceMethod, request, response)
-			if deferedError != nil {
-				return
-			}
-		}
-	}()
-
-	err := c.Client.Call(serviceMethod, request, response)
-	if err != nil {
-		return err
+	errCall := c.Client.Call(serviceMethod, request, response)
+	if errCall == nil {
+		return nil
 	}
 
-	return deferedError
+	if errReconnect := c.reconnect(); errReconnect != nil {
+		return errReconnect
+	}
+
+	return c.Client.Call(serviceMethod, request, response)
 }
 
 /**
@@ -125,29 +112,22 @@ func (c *Client) Go(serviceMethod string, request any, response any, done chan *
 		}
 	}
 
-	var deferedError *rpc.Call
-	defer func() {
-		// normal call can panic if client is nil or if connection was lost
-		if r := recover(); r != nil {
-			deferedError := c.reconnect()
-			if deferedError != nil {
-				return
-			}
-
-			// retry to request
-			deferedError = c.Client.Call(serviceMethod, request, response)
-			if deferedError != nil {
-				return
-			}
-		}
-	}()
-
 	call := c.Client.Go(serviceMethod, request, response, done)
-	if call != nil {
+	if call.Error == nil {
 		return call
 	}
 
-	return deferedError
+	if errReconnect := c.reconnect(); errReconnect != nil {
+		return &rpc.Call{
+			ServiceMethod: serviceMethod,
+			Args:          request,
+			Reply:         response,
+			Error:         errReconnect,
+			Done:          nil,
+		}
+	}
+
+	return c.Client.Go(serviceMethod, request, response, done)
 }
 
 /**
@@ -221,22 +201,21 @@ func (c *Client) reconnect() error {
 		return nil
 	}
 	c.isReconnecting = true
-	defer func() {
-		c.isReconnecting = false
-	}()
 
 	for i := 0; i < c.iterationLimit; i++ {
-		log.Printf("reconnexion attempt %d/%d to %+v\n", i, c.iterationLimit, c.remote)
-		err := c.Dial()
-		if err != nil {
-			log.Println(err)
+		log.Printf("reconnexion attempt %d/%d to %+v\n", i+1, c.iterationLimit, c.remote)
+
+		if err := c.Dial(); err != nil {
+			log.Println("reconnect failed:", err)
 		} else {
 			log.Println("reconnexion succeeded")
+			c.isReconnecting = false
 			return nil
 		}
 
 		time.Sleep(time.Second * c.timeInterval)
 	}
 
+	c.isReconnecting = false
 	return common.MicronetReconnectTimeoutError{NetConf: c.remote}
 }

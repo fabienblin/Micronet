@@ -179,6 +179,7 @@ func TestClient_Call(t *testing.T) {
 		time.Sleep(ListenReadynessDuration)
 
 		client, errDial := NewClient(netConf)
+		client.SetReconnectionConf(0, 0) // no retry
 		assert.NoError(t, errDial)
 
 		request := true

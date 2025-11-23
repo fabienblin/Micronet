@@ -20,7 +20,7 @@ func TestClientServerPing(t *testing.T) {
 	}
 	var err error
 
-	srv1, err := InitClientServer(netConf1, netConf2)
+	srv1, err := NewClientServer(netConf1, netConf2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,7 +31,7 @@ func TestClientServerPing(t *testing.T) {
 		}
 	}()
 
-	srv2, err := InitClientServer(netConf2, netConf1)
+	srv2, err := NewClientServer(netConf2, netConf1)
 	if err != nil {
 		t.Error(err)
 	}

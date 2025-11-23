@@ -15,7 +15,7 @@ func TestClientCall(t *testing.T) {
 	}
 	var err error
 
-	server, err := server.InitServer(netConf)
+	server, err := server.NewServer(netConf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -27,7 +27,7 @@ func TestClientCall(t *testing.T) {
 		}
 	}()
 
-	client := InitClient(netConf)
+	client := NewClient(netConf)
 
 	err = client.Dial()
 	if err != nil {
@@ -55,7 +55,7 @@ func TestClientReconnect(t *testing.T) {
 	}
 	var err error
 
-	server, err := server.InitServer(netConf)
+	server, err := server.NewServer(netConf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -67,7 +67,7 @@ func TestClientReconnect(t *testing.T) {
 		}
 	}()
 
-	client := InitClient(netConf)
+	client := NewClient(netConf)
 
 	err = client.Ping()
 	if _, ok := err.(common.MicronetReconnectTimeoutError); ok {
@@ -90,7 +90,7 @@ func TestClientCallTimeout(t *testing.T) {
 	}
 	var err error
 
-	client := InitClient(netConf)
+	client := NewClient(netConf)
 
 	err = client.Ping()
 	e, ok := err.(*common.MicronetReconnectTimeoutError)
@@ -107,7 +107,7 @@ func TestClientGo(t *testing.T) {
 	}
 	var err error
 
-	server, err := server.InitServer(netConf)
+	server, err := server.NewServer(netConf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -119,7 +119,7 @@ func TestClientGo(t *testing.T) {
 		}
 	}()
 
-	client := InitClient(netConf)
+	client := NewClient(netConf)
 
 	err = client.Dial()
 	if err != nil {
@@ -150,7 +150,7 @@ func TestClientGoTimeout(t *testing.T) {
 	}
 	var err error
 
-	client := InitClient(netConf)
+	client := NewClient(netConf)
 
 	request := common.Ping{Data: "PING"}
 	response := common.Pong{}

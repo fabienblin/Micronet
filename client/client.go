@@ -33,11 +33,11 @@ type Client struct {
 }
 
 /**
- * InitClient creates an rpc client and saves the remote server's network config
+ * NewClient creates an rpc client and saves the remote server's network config
  * @param network is the remote server to call
  * @return the initialized Client
  */
-func InitClient(network common.NetConf) *Client {
+func NewClient(network common.NetConf) *Client {
 	cli := &Client{remote: network}
 	cli.SetReconnectionConf(3, 1)
 

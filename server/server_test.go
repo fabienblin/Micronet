@@ -15,7 +15,7 @@ func TestServerLifecycle(t *testing.T) {
 	}
 
 	// Initialize the server
-	server, err := InitServer(netConf)
+	server, err := NewServer(netConf)
 	if err != nil {
 		t.Error(err)
 	}

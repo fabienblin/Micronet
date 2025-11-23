@@ -60,7 +60,7 @@ func (s *SubscriberClient) Update(req any, res any) error {
  * @return the initialized Server or error
  */
 func InitPublisher(network common.NetConf) (*Publisher, error) {
-	server, err := server.InitServer(network)
+	server, err := server.NewServer(network)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (p *PublisherHandler) Subscribe(req *common.SubscribeRequest, res *common.S
 		return nil
 	}
 
-	newSubscriber := &SubscriberClient{Client: client.InitClient(req.Subscriber)}
+	newSubscriber := &SubscriberClient{Client: client.NewClient(req.Subscriber)}
 
 	p.subscribers[req.Subscriber] = newSubscriber
 

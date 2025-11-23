@@ -30,11 +30,11 @@ type Server struct {
 }
 
 /**
- * InitServer creates an rpc server with it's context and registers the default ping handler
+ * NewServer creates an rpc server with it's context and registers the default ping handler
  * @param network is the server's configuration
  * @return the initialized Server or error
  */
-func InitServer(network common.NetConf) (*Server, error) {
+func NewServer(network common.NetConf) (*Server, error) {
 	srv := &Server{NetConf: network}
 	srv.Server = rpc.NewServer()
 	srv.ctx, srv.cancelFunction = context.WithCancel(context.Background())

@@ -46,7 +46,7 @@ type SubscriberHandler struct {
  * @return the initialized Subscriber or error
  */
 func InitSubscriber(selfNetwork common.NetConf, remoteNetwork common.NetConf) (*Subscriber, error) {
-	clientServer, err := clientServer.InitClientServer(selfNetwork, remoteNetwork)
+	clientServer, err := clientServer.NewClientServer(selfNetwork, remoteNetwork)
 	if err != nil {
 		return nil, err
 	}

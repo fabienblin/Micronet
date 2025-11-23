@@ -26,14 +26,14 @@ type ClientServer struct {
 }
 
 /**
- * InitClientServer creates a ClientServer, inheriting from Client and Server
+ * NewClientServer creates a ClientServer, inheriting from Client and Server
  * @param selfNetwork is the server's network config
  * @param remoteNetwork is the remote server's network config
  * @return the initialized ClientServer or error
  */
-func InitClientServer(selfNetwork common.NetConf, remoteNetwork common.NetConf) (*ClientServer, error) {
-	cli := client.InitClient(remoteNetwork)
-	srv, err := server.InitServer(selfNetwork)
+func NewClientServer(selfNetwork common.NetConf, remoteNetwork common.NetConf) (*ClientServer, error) {
+	cli := client.NewClient(remoteNetwork)
+	srv, err := server.NewServer(selfNetwork)
 	if err != nil {
 		return nil, err
 	}

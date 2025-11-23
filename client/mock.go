@@ -4,9 +4,7 @@ import (
 	"net/rpc"
 )
 
-// MockClient is a test double implementing I_Client
 type MockClient struct {
-	// --- Behavior you can define in tests ---
 	DialFunc  func() error
 	CallFunc  func(serviceMethod string, args any, reply any) error
 	GoFunc    func(serviceMethod string, args any, reply any, done chan *rpc.Call) *rpc.Call

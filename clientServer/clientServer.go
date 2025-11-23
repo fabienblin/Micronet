@@ -32,10 +32,14 @@ type ClientServer struct {
  * @return the initialized ClientServer or error
  */
 func NewClientServer(selfNetwork common.NetConf, remoteNetwork common.NetConf) (*ClientServer, error) {
-	cli := client.NewClient(remoteNetwork)
-	srv, err := server.NewServer(selfNetwork)
-	if err != nil {
-		return nil, err
+	cli, errDial := client.NewClient(remoteNetwork)
+	if errDial != nil {
+		return nil, errDial
+	}
+
+	srv, errListen := server.NewServer(selfNetwork)
+	if errListen != nil {
+		return nil, errListen
 	}
 
 	return &ClientServer{Client: cli, Server: srv}, nil

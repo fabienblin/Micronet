@@ -1,5 +1,10 @@
 package common
 
+const (
+	PING string = "PING"
+	PONG string = "PONG"
+)
+
 type NetConf struct {
 	Name     string
 	Ip       string
@@ -18,8 +23,8 @@ type Pong struct {
 type PingHandler struct{}
 
 func (p *PingHandler) Ping(req *Ping, res *Pong) error {
-	if req.Data == "PING" {
-		res.Data = "PONG"
+	if req.Data == PING {
+		res.Data = PONG
 	}
 
 	return nil

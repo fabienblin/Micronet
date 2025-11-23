@@ -1,9 +1,6 @@
 package server
 
-// MockServer is a test double for I_Server.
 type MockServer struct {
-	// --- Optional behavior to define in your tests ---
-
 	RegisterFunc func(rcvr any) error
 	StartFunc    func() error
 	StopFunc     func()

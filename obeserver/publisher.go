@@ -101,7 +101,12 @@ func (p *PublisherHandler) Subscribe(req *common.SubscribeRequest, res *common.S
 		return nil
 	}
 
-	newSubscriber := &SubscriberClient{Client: client.NewClient(req.Subscriber)}
+	client, errDial := client.NewClient(req.Subscriber)
+	if errDial != nil {
+		return errDial
+	}
+
+	newSubscriber := &SubscriberClient{Client: client}
 
 	p.subscribers[req.Subscriber] = newSubscriber
 

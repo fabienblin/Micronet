@@ -3,16 +3,21 @@ package common
 import (
 	"fmt"
 	"log"
+
+	"micronet/client"
+	"micronet/clientServer"
+	"micronet/common"
+	"micronet/server"
 )
 
 /**
  * PUBLISHER :
  */
 
- /**
-  * The basic Publisher functions
-  */
- type I_Publisher interface {
+/**
+ * The basic Publisher functions
+ */
+type I_Publisher interface {
 	Publish(string)
 }
 
@@ -21,7 +26,7 @@ import (
  */
 type Publisher struct {
 	I_Publisher
-	*Server
+	*server.Server
 	*PublisherHandler
 }
 
@@ -29,8 +34,8 @@ type Publisher struct {
  * The basic PublisherHandler functions
  */
 type I_PublisherHandler interface {
-	Subscribe(*SubscribeRequest, *SubscribeResponse) (error)
-	Unsubscribe(*SubscribeRequest, *SubscribeResponse) (error)
+	Subscribe(*common.SubscribeRequest, *common.SubscribeResponse) error
+	Unsubscribe(*common.SubscribeRequest, *common.SubscribeResponse) error
 }
 
 /**
@@ -38,38 +43,38 @@ type I_PublisherHandler interface {
  */
 type PublisherHandler struct {
 	I_PublisherHandler
-	subscribers map[NetConf]*SubscriberClient
+	subscribers map[common.NetConf]*SubscriberClient
 }
 
 /**
- * The SubscriberClient is the Client used to communicate to the Subscriber
+ * The SubscriberClient is the client.Client used to communicate to the Subscriber
  */
 type SubscriberClient struct {
-	*Client
+	*client.Client
 }
 
 /**
  * Update the subscriber
  */
-func (s *SubscriberClient) Update(req any, res any) (error) {
+func (s *SubscriberClient) Update(req any, res any) error {
 	return s.Call("Subscriber.Update", req, res)
 }
 
 /**
  * InitPublisher creates Server
  * @param network is the server's configuration
- * @return the initialized Server or error 
+ * @return the initialized Server or error
  */
-func InitPublisher(network NetConf) (*Publisher, error) {
-	server, err := InitServer(network)
+func InitPublisher(network common.NetConf) (*Publisher, error) {
+	server, err := server.InitServer(network)
 	if err != nil {
 		return nil, err
 	}
-	
-	handler := &PublisherHandler{subscribers: make(map[NetConf]*SubscriberClient)}
-	
+
+	handler := &PublisherHandler{subscribers: make(map[common.NetConf]*SubscriberClient)}
+
 	pub := &Publisher{
-		Server: server,
+		Server:           server,
 		PublisherHandler: handler,
 	}
 
@@ -77,7 +82,7 @@ func InitPublisher(network NetConf) (*Publisher, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return pub, nil
 }
 
@@ -96,13 +101,13 @@ func (p *Publisher) Start() error {
  * @param res is the response that will give Ok=true if subscription was effective
  * @return a potential network error
  */
-func (p *PublisherHandler) Subscribe(req *SubscribeRequest, res *SubscribeResponse) (error) {
+func (p *PublisherHandler) Subscribe(req *common.SubscribeRequest, res *common.SubscribeResponse) error {
 	_, exist := p.subscribers[req.Subscriber]
 	if exist {
 		return nil
 	}
 
-	newSubscriber := &SubscriberClient{Client: InitClient(req.Subscriber)}
+	newSubscriber := &SubscriberClient{Client: client.InitClient(req.Subscriber)}
 
 	p.subscribers[req.Subscriber] = newSubscriber
 
@@ -123,7 +128,7 @@ func (p *PublisherHandler) Subscribe(req *SubscribeRequest, res *SubscribeRespon
  * @param res is the response that will give Ok=true if unsubscription was effective
  * @return a potential network error
  */
-func (p *PublisherHandler) Unsubscribe(req *SubscribeRequest, res *SubscribeResponse) (error) {
+func (p *PublisherHandler) Unsubscribe(req *common.SubscribeRequest, res *common.SubscribeResponse) error {
 	delete(p.subscribers, req.Subscriber)
 	res.Ok = true
 
@@ -153,8 +158,8 @@ func (p *Publisher) Publish(req any, res any) {
  * The basic Subscriber functions
  */
 type I_Subscriber interface {
-	Subscribe(Publisher) (error)
-	Unsubscribe(Publisher) (error)
+	Subscribe(Publisher) error
+	Unsubscribe(Publisher) error
 }
 
 /**
@@ -162,7 +167,7 @@ type I_Subscriber interface {
  */
 type Subscriber struct {
 	I_Subscriber
-	*ClientServer
+	*clientServer.ClientServer
 	*SubscriberHandler
 }
 
@@ -170,7 +175,7 @@ type Subscriber struct {
  * The basic SubscriberHandler functions
  */
 type I_SubscriberHandler interface {
-	Update(any, any) (error)
+	Update(any, any) error
 }
 
 /**
@@ -185,10 +190,10 @@ type SubscriberHandler struct {
  * InitSubscriber creates a Subscriber, inheriting from ClientServer
  * @param selfNetwork is the server's network config
  * @param remoteNetwork is the remote server's network config
- * @return the initialized Subscriber or error 
+ * @return the initialized Subscriber or error
  */
-func InitSubscriber(selfNetwork NetConf, remoteNetwork NetConf) (*Subscriber, error) {
-	clientServer, err := InitClientServer(selfNetwork, remoteNetwork)
+func InitSubscriber(selfNetwork common.NetConf, remoteNetwork common.NetConf) (*Subscriber, error) {
+	clientServer, err := clientServer.InitClientServer(selfNetwork, remoteNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +201,7 @@ func InitSubscriber(selfNetwork NetConf, remoteNetwork NetConf) (*Subscriber, er
 	handler := &SubscriberHandler{msgChan: make(chan any)}
 
 	subscriber := &Subscriber{
-		ClientServer: clientServer,
+		ClientServer:      clientServer,
 		SubscriberHandler: handler,
 	}
 
@@ -222,9 +227,9 @@ func (s *Subscriber) Start() error {
  * @param publisher is the target publisher
  * @return potential networking or subscription errors
  */
-func (s *Subscriber) Subscribe(publisher NetConf) (error) {
-	req := SubscribeRequest{Subscriber: s.Server.NetConf}
-	res := SubscribeResponse{}
+func (s *Subscriber) Subscribe(publisher common.NetConf) error {
+	req := common.SubscribeRequest{Subscriber: s.Server.NetConf}
+	res := common.SubscribeResponse{}
 	err := s.Call("PublisherHandler.Subscribe", &req, &res)
 	if err != nil {
 		return err
@@ -233,7 +238,7 @@ func (s *Subscriber) Subscribe(publisher NetConf) (error) {
 	if !res.Ok {
 		return fmt.Errorf("publisher %+v could not subscribe %+v", publisher, s.Server.NetConf)
 	}
-	
+
 	return nil
 }
 
@@ -242,9 +247,9 @@ func (s *Subscriber) Subscribe(publisher NetConf) (error) {
  * @param publisher is the target publisher
  * @return potential networking or unsubscription errors
  */
-func (s *Subscriber) Unsubscribe(publisher NetConf) (error) {
-	req := SubscribeRequest{Subscriber: s.Server.NetConf}
-	res := SubscribeResponse{}
+func (s *Subscriber) Unsubscribe(publisher common.NetConf) error {
+	req := common.SubscribeRequest{Subscriber: s.Server.NetConf}
+	res := common.SubscribeResponse{}
 	err := s.Call("PublisherHandler.Unsubscribe", &req, &res)
 	if err != nil {
 		return err
@@ -253,14 +258,14 @@ func (s *Subscriber) Unsubscribe(publisher NetConf) (error) {
 	if !res.Ok {
 		return fmt.Errorf("publisher %+v could not unsubscribe %+v", publisher, s.Server.NetConf)
 	}
-	
+
 	return nil
 }
 
 /**
  * Update will forward the incoming request data to the message channel
  */
-func (s *SubscriberHandler) Update(req *any, res *any) (error) {
+func (s *SubscriberHandler) Update(req *any, res *any) error {
 	s.msgChan <- *req
 
 	return nil
@@ -269,7 +274,7 @@ func (s *SubscriberHandler) Update(req *any, res *any) (error) {
 /**
  * Message channel getter
  */
-func (s *Subscriber) Chan() (chan any) {
+func (s *Subscriber) Chan() chan any {
 	return s.msgChan
 }
 
@@ -277,7 +282,7 @@ func (s *Subscriber) Chan() (chan any) {
  * Close the running server
  * Same as Stop()
  */
-func (s *Subscriber) Close() (error) {
+func (s *Subscriber) Close() error {
 	close(s.msgChan)
 	return s.ClientServer.Close()
 }
@@ -286,6 +291,6 @@ func (s *Subscriber) Close() (error) {
  * Stop the running server
  * Same as Close()
  */
-func (s *Subscriber) Stop() (error) {
+func (s *Subscriber) Stop() error {
 	return s.Close()
 }

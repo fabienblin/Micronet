@@ -2,18 +2,21 @@ package client
 
 import (
 	"testing"
+
+	"micronet/common"
+	"micronet/server"
 )
 
 func TestClientCall(t *testing.T) {
-	// Create a sample NetConf for testing
-	netConf := NetConf{
+	// Create a sample common.NetConf for testing
+	netConf := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
 	}
 	var err error
 
-	server, err := InitServer(netConf)
+	server, err := server.InitServer(netConf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,14 +50,14 @@ func TestClientCall(t *testing.T) {
 }
 
 func TestClientReconnect(t *testing.T) {
-	netConf := NetConf{
+	netConf := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
 	}
 	var err error
 
-	server, err := InitServer(netConf)
+	server, err := server.InitServer(netConf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +78,7 @@ func TestClientReconnect(t *testing.T) {
 	// }
 
 	err = client.Ping()
-	if _, ok := err.(MicronetReconnectTimeoutError); ok {
+	if _, ok := err.(common.MicronetReconnectTimeoutError); ok {
 		t.Error(err)
 	}
 
@@ -88,7 +91,7 @@ func TestClientReconnect(t *testing.T) {
 }
 
 func TestClientCallTimeout(t *testing.T) {
-	netConf := NetConf{
+	netConf := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
@@ -104,22 +107,22 @@ func TestClientCallTimeout(t *testing.T) {
 	// }
 
 	err = client.Ping()
-	e, ok := err.(*MicronetReconnectTimeoutError)
+	e, ok := err.(*common.MicronetReconnectTimeoutError)
 	if !ok && e != nil{
 		t.Error(err)
 	}
 }
 
 func TestClientGo(t *testing.T) {
-	// Create a sample NetConf for testing
-	netConf := NetConf{
+	// Create a sample common.NetConf for testing
+	netConf := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
 	}
 	var err error
 
-	server, err := InitServer(netConf)
+	server, err := server.InitServer(netConf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -139,8 +142,8 @@ func TestClientGo(t *testing.T) {
 		t.Error(err)
 	}
 
-	request := Ping{Data: "PING"}
-	response := Pong{}
+	request := common.Ping{Data: "PING"}
+	response := common.Pong{}
 	call := client.Go("PingHandler.Ping", &request, &response, nil)
 	if call.Error != nil {
 		return
@@ -158,7 +161,7 @@ func TestClientGo(t *testing.T) {
 
 
 func TestClientGoTimeout(t *testing.T) {
-	netConf := NetConf{
+	netConf := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
@@ -173,10 +176,10 @@ func TestClientGoTimeout(t *testing.T) {
 	// 	t.Error(err)
 	// }
 
-	request := Ping{Data: "PING"}
-	response := Pong{}
+	request := common.Ping{Data: "PING"}
+	response := common.Pong{}
 	call := client.Go("PingHandler.Ping", &request, &response, nil)
-	e, ok := call.Error.(*MicronetReconnectTimeoutError)
+	e, ok := call.Error.(*common.MicronetReconnectTimeoutError)
 	if !ok && e != nil{
 		t.Error(err)
 	}

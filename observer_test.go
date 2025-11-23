@@ -3,18 +3,20 @@ package common
 import (
 	"testing"
 	"time"
+	
+	"micronet/common"
 )
 
 func TestObserver(t *testing.T) {
-	// Create a sample NetConf for testing
-	pubNetConf := NetConf{
+	// Create a sample common.NetConf for testing
+	pubNetConf := common.NetConf{
 		Name:     "Publisher",
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
 	}
-	
-	subNetConf := NetConf{
+
+	subNetConf := common.NetConf{
 		Name:     "Subscriber",
 		Protocol: "tcp",
 		Ip:       "localhost",
@@ -60,7 +62,7 @@ func TestObserver(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	go func(){
+	go func() {
 		msg := (<-sub.Chan()).(string)
 		if msg != "message" {
 			t.Errorf("incorrect message : '%s'", msg)
@@ -74,33 +76,32 @@ func TestObserver(t *testing.T) {
 		t.Error(err)
 	}
 
-
 	err = sub.Stop()
 	if err != nil {
 		t.Error(err)
 	}
-	
+
 	pub.Stop()
 
 }
 
 func TestObserver2(t *testing.T) {
-	// Create a sample NetConf for testing
-	pubNetConf := NetConf{
+	// Create a sample common.NetConf for testing
+	pubNetConf := common.NetConf{
 		Name:     "Publisher",
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
 	}
-	
-	subNetConf1 := NetConf{
+
+	subNetConf1 := common.NetConf{
 		Name:     "Subscriber",
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "4321",
 	}
 
-	subNetConf2 := NetConf{
+	subNetConf2 := common.NetConf{
 		Name:     "Subscriber",
 		Protocol: "tcp",
 		Ip:       "localhost",
@@ -167,7 +168,7 @@ func TestObserver2(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	go func(){
+	go func() {
 		msg := (<-sub1.Chan()).(string)
 		if msg != "message" {
 			t.Errorf("incorrect message : '%s'", msg)
@@ -176,7 +177,7 @@ func TestObserver2(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	go func(){
+	go func() {
 		msg := (<-sub2.Chan()).(string)
 		if msg != "message" {
 			t.Errorf("incorrect message : '%s'", msg)
@@ -199,12 +200,12 @@ func TestObserver2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	
+
 	err = sub2.Stop()
 	if err != nil {
 		t.Error(err)
 	}
-	
+
 	pub.Stop()
 
 }

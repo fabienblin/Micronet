@@ -1,13 +1,19 @@
 package clientServer
 
-import "net/rpc"
+import (
+	"net/rpc"
+
+	"micronet/common"
+	"micronet/client"
+	"micronet/server"
+)
 
 /**
  * The basic ClientServer functions
  */
 type I_ClientServer interface {
-	I_Client
-	I_Server
+	client.I_Client
+	server.I_Server
 }
 
 /**
@@ -15,19 +21,19 @@ type I_ClientServer interface {
  */
 type ClientServer struct {
 	I_ClientServer
-	*Server
-	*Client
+	*server.Server
+	*client.Client
 }
 
 /**
  * InitClientServer creates a ClientServer, inheriting from Client and Server
  * @param selfNetwork is the server's network config
  * @param remoteNetwork is the remote server's network config
- * @return the initialized ClientServer or error 
+ * @return the initialized ClientServer or error
  */
-func InitClientServer(selfNetwork NetConf, remoteNetwork NetConf) (*ClientServer, error) {
-	cli := InitClient(remoteNetwork)
-	srv, err := InitServer(selfNetwork)
+func InitClientServer(selfNetwork common.NetConf, remoteNetwork common.NetConf) (*ClientServer, error) {
+	cli := client.InitClient(remoteNetwork)
+	srv, err := server.InitServer(selfNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +63,7 @@ func (s *ClientServer) Start() error {
  * Dial creates the client's connexion to the remote Server
  * @return a potential network error
  */
-func (c *ClientServer) Dial() (error) {
+func (c *ClientServer) Dial() error {
 	return c.Client.Dial()
 }
 
@@ -66,10 +72,10 @@ func (c *ClientServer) Dial() (error) {
  * Use Go() for async request
  * @param serviceMethod is the remote's "handler.function" to call
  * @param args is the derefenced request of any type
- * @param reply is the derefenced response of any type 
+ * @param reply is the derefenced response of any type
  * @return a potential network error
  */
-func (c *ClientServer) Call(serviceMethod string, args any, reply any) (error) {
+func (c *ClientServer) Call(serviceMethod string, args any, reply any) error {
 	return c.Client.Call(serviceMethod, args, reply)
 }
 
@@ -78,11 +84,11 @@ func (c *ClientServer) Call(serviceMethod string, args any, reply any) (error) {
  * Use Call() for a synchronous request
  * @param serviceMethod is the remote's "handler.function" to call
  * @param args is the derefenced request of any type
- * @param reply is the derefenced response of any type 
+ * @param reply is the derefenced response of any type
  * @param done channel will signal when the call is complete by returning the same Call object. If done is nil, Go will allocate a new channel. If non-nil, done must be buffered or Go will deliberately crash
  * @return the done channel
  */
-func (c *ClientServer) Go(serviceMethod string, args any, reply any, done chan *rpc.Call) (*rpc.Call) {
+func (c *ClientServer) Go(serviceMethod string, args any, reply any, done chan *rpc.Call) *rpc.Call {
 	return c.Client.Go(serviceMethod, args, reply, done)
 }
 
@@ -90,7 +96,7 @@ func (c *ClientServer) Go(serviceMethod string, args any, reply any, done chan *
  * Stop the running server
  * Same as Close()
  */
-func (c *ClientServer) Stop() (error) {
+func (c *ClientServer) Stop() error {
 	c.Server.Stop()
 	err := c.Client.Close()
 	return err
@@ -100,7 +106,7 @@ func (c *ClientServer) Stop() (error) {
  * Close the running server
  * Same as Stop()
  */
-func (c *ClientServer) Close() (error) {
+func (c *ClientServer) Close() error {
 	return c.Stop()
 }
 
@@ -108,6 +114,6 @@ func (c *ClientServer) Close() (error) {
  * Ping allows to test a client and server connection
  * It is registered by default by the ClientServer
  */
-func (c *ClientServer) Ping() (error) {
+func (c *ClientServer) Ping() error {
 	return c.Client.Ping()
 }

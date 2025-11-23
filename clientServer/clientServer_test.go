@@ -2,16 +2,18 @@ package clientServer
 
 import (
 	"testing"
+	
+	"micronet/common"
 )
 
 func TestClientServerPing(t *testing.T) {
-	// Create a sample NetConf for testing
-	netConf1 := NetConf{
+	// Create a sample common.NetConf for testing
+	netConf1 := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "1234",
 	}
-	netConf2 := NetConf{
+	netConf2 := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
 		Port:     "4321",
@@ -22,7 +24,7 @@ func TestClientServerPing(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	go func(){
+	go func() {
 		err = srv1.Start()
 		if err != nil {
 			t.Error(err)
@@ -33,13 +35,13 @@ func TestClientServerPing(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	go func(){
+	go func() {
 		err = srv2.Start()
 		if err != nil {
 			t.Error(err)
 		}
 	}()
-	
+
 	err = srv1.Dial()
 	if err != nil {
 		t.Error(err)

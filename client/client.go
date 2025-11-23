@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/rpc"
 	"time"
+
+	"micronet/common"
 )
 
 /**
@@ -24,7 +26,7 @@ type I_Client interface {
 type Client struct {
 	*rpc.Client
 	I_Client
-	remote NetConf
+	remote common.NetConf
 	isReconnecting bool
 	iterationLimit int
 	timeInterval time.Duration
@@ -35,7 +37,7 @@ type Client struct {
  * @param network is the remote server to call
  * @return the initialized Client
  */
-func InitClient(network NetConf) (*Client) {
+func InitClient(network common.NetConf) (*Client) {
 	cli := &Client{remote: network}
 	cli.SetReconnectionConf(3, 1)
 
@@ -176,8 +178,8 @@ func (c *Client) Ping() (error) {
 		return fmt.Errorf("ni client")
 	}
 
-	request := Ping{Data: "PING"}
-	response := Pong{}
+	request := common.Ping{Data: "PING"}
+	response := common.Pong{}
 	err := c.Call("PingHandler.Ping", &request, &response)
 	if err != nil {
 		return err
@@ -234,5 +236,5 @@ func (c *Client) reconnect() (error) {
 		time.Sleep(time.Second * c.timeInterval)
 	}
 
-	return MicronetReconnectTimeoutError{NetConf: c.remote}
+	return common.MicronetReconnectTimeoutError{NetConf: c.remote}
 }

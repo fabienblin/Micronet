@@ -2,11 +2,13 @@ package server
 
 import (
 	"testing"
+	
+	"micronet/common"
 )
 
 func TestServerLifecycle(t *testing.T) {
 	// Create a sample NetConf for testing
-	netConf := NetConf{
+	netConf := common.NetConf{
 		Protocol: "tcp",
 		Port:     "12345",
 		Ip:       "localhost",
@@ -22,7 +24,6 @@ func TestServerLifecycle(t *testing.T) {
 	go server.Start()
 
 	// Perform any necessary assertions or tests here
-
 
 	// Stop the server
 	server.Stop()

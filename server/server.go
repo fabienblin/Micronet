@@ -5,14 +5,16 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+
+	"micronet/common"
 )
 
 /**
  * The basic Server functions
  */
 type I_Server interface {
-	Register(any) (error)
-	Start() (error)
+	Register(any) error
+	Start() error
 	Stop()
 }
 
@@ -22,7 +24,7 @@ type I_Server interface {
 type Server struct {
 	*rpc.Server
 	I_Server
-	NetConf
+	common.NetConf
 	ctx            context.Context
 	cancelFunction context.CancelFunc
 }
@@ -30,15 +32,15 @@ type Server struct {
 /**
  * InitServer creates an rpc server with it's context and registers the default ping handler
  * @param network is the server's configuration
- * @return the initialized Server or error 
+ * @return the initialized Server or error
  */
-func InitServer(network NetConf) (*Server, error) {
+func InitServer(network common.NetConf) (*Server, error) {
 	srv := &Server{NetConf: network}
 	srv.Server = rpc.NewServer()
 	srv.ctx, srv.cancelFunction = context.WithCancel(context.Background())
 
 	// Register ping request
-	err := srv.Server.Register(new(PingHandler))
+	err := srv.Server.Register(new(common.PingHandler))
 	if err != nil {
 		return nil, err
 	}

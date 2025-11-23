@@ -13,11 +13,11 @@ import (
  * The basic Client functions
  */
 type I_Client interface {
-	Dial() (error)
-	Call(string, any, any) (error)
-	Go(string, any, any, chan *rpc.Call) (*rpc.Call)
-	Close() (error)
-	Ping() (error)
+	Dial() error
+	Call(string, any, any) error
+	Go(string, any, any, chan *rpc.Call) *rpc.Call
+	Close() error
+	Ping() error
 }
 
 /**
@@ -26,10 +26,10 @@ type I_Client interface {
 type Client struct {
 	*rpc.Client
 	I_Client
-	remote common.NetConf
+	remote         common.NetConf
 	isReconnecting bool
 	iterationLimit int
-	timeInterval time.Duration
+	timeInterval   time.Duration
 }
 
 /**
@@ -37,7 +37,7 @@ type Client struct {
  * @param network is the remote server to call
  * @return the initialized Client
  */
-func InitClient(network common.NetConf) (*Client) {
+func InitClient(network common.NetConf) *Client {
 	cli := &Client{remote: network}
 	cli.SetReconnectionConf(3, 1)
 
@@ -48,7 +48,7 @@ func InitClient(network common.NetConf) (*Client) {
  * Dial creates the client's connexion to the remote Server
  * @return a potential network error
  */
-func (c *Client) Dial() (error) {
+func (c *Client) Dial() error {
 	if c == nil {
 		return fmt.Errorf("ni client")
 	}
@@ -58,7 +58,7 @@ func (c *Client) Dial() (error) {
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -67,10 +67,10 @@ func (c *Client) Dial() (error) {
  * Use Go() for async request
  * @param serviceMethod is the remote's "handler.function" to call
  * @param args is the derefenced request of any type
- * @param reply is the derefenced response of any type 
+ * @param reply is the derefenced response of any type
  * @return a potential network error
  */
-func (c *Client) Call(serviceMethod string, args any, reply any) (error) {
+func (c *Client) Call(serviceMethod string, args any, reply any) error {
 	if c == nil || c.Client == nil {
 		return fmt.Errorf("ni client")
 	}
@@ -83,7 +83,7 @@ func (c *Client) Call(serviceMethod string, args any, reply any) (error) {
 			if deferedError != nil {
 				return
 			}
-	
+
 			// retry to request
 			deferedError = c.Client.Call(serviceMethod, args, reply)
 			if deferedError != nil {
@@ -105,18 +105,18 @@ func (c *Client) Call(serviceMethod string, args any, reply any) (error) {
  * Use Call() for a synchronous request
  * @param serviceMethod is the remote's "handler.function" to call
  * @param args is the derefenced request of any type
- * @param reply is the derefenced response of any type 
+ * @param reply is the derefenced response of any type
  * @param done channel will signal when the call is complete by returning the same Call object. If done is nil, Go will allocate a new channel. If non-nil, done must be buffered or Go will deliberately crash
  * @return the done channel
  */
-func (c *Client) Go(serviceMethod string, args any, reply any, done chan *rpc.Call) (*rpc.Call) {
+func (c *Client) Go(serviceMethod string, args any, reply any, done chan *rpc.Call) *rpc.Call {
 	if c == nil {
 		return &rpc.Call{
 			ServiceMethod: serviceMethod,
-			Args: args,
-			Reply: reply,
-			Error: fmt.Errorf("nil client"),
-			Done: nil,
+			Args:          args,
+			Reply:         reply,
+			Error:         fmt.Errorf("nil client"),
+			Done:          nil,
 		}
 	}
 
@@ -128,7 +128,7 @@ func (c *Client) Go(serviceMethod string, args any, reply any, done chan *rpc.Ca
 			if deferedError != nil {
 				return
 			}
-	
+
 			// retry to request
 			deferedError = c.Client.Call(serviceMethod, args, reply)
 			if deferedError != nil {
@@ -136,7 +136,6 @@ func (c *Client) Go(serviceMethod string, args any, reply any, done chan *rpc.Ca
 			}
 		}
 	}()
-
 
 	call := c.Client.Go(serviceMethod, args, reply, done)
 	if call != nil {
@@ -149,7 +148,7 @@ func (c *Client) Go(serviceMethod string, args any, reply any, done chan *rpc.Ca
 /**
  * Close calls the underlying codec's Close method. If the connection is already shutting down, ErrShutdown is returned
  */
-func (c *Client) Close() (error) {
+func (c *Client) Close() error {
 	if c == nil || c.Client == nil {
 		return fmt.Errorf("ni client")
 	}
@@ -157,7 +156,7 @@ func (c *Client) Close() (error) {
 	var deferedError error
 	defer func() {
 		if r := recover(); r != nil {
-			deferedError = fmt.Errorf("%v",r)
+			deferedError = fmt.Errorf("%v", r)
 		}
 	}()
 
@@ -173,7 +172,7 @@ func (c *Client) Close() (error) {
  * Ping allows to test a client and server connection
  * It is registered by default by the Server
  */
-func (c *Client) Ping() (error) {
+func (c *Client) Ping() error {
 	if c == nil || c.Client == nil {
 		return fmt.Errorf("ni client")
 	}
@@ -184,13 +183,13 @@ func (c *Client) Ping() (error) {
 	if err != nil {
 		return err
 	}
-	
+
 	if response.Data != "PONG" {
 		return fmt.Errorf("response is not PONG")
 	}
-	
+
 	log.Printf("PING %+v responded with %s", c.remote, response.Data)
-	
+
 	return nil
 }
 
@@ -208,7 +207,7 @@ func (c *Client) SetReconnectionConf(iterationLimit int, timeInterval time.Durat
 	c.timeInterval = timeInterval
 }
 
-func (c *Client) reconnect() (error) {
+func (c *Client) reconnect() error {
 	if c == nil || c.Client == nil {
 		return fmt.Errorf("ni client")
 	}
@@ -217,7 +216,7 @@ func (c *Client) reconnect() (error) {
 		return nil
 	}
 	c.isReconnecting = true
-	defer func(){
+	defer func() {
 		c.isReconnecting = false
 	}()
 

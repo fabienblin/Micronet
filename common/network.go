@@ -17,7 +17,7 @@ type Pong struct {
 
 type PingHandler struct{}
 
-func (p *PingHandler) Ping(req *Ping, res *Pong) (error) {
+func (p *PingHandler) Ping(req *Ping, res *Pong) error {
 	if req.Data == "PING" {
 		res.Data = "PONG"
 	}
@@ -27,10 +27,9 @@ func (p *PingHandler) Ping(req *Ping, res *Pong) (error) {
 
 type SubscribeRequest struct {
 	Subscriber NetConf
-	Publisher NetConf
+	Publisher  NetConf
 }
 
 type SubscribeResponse struct {
 	Ok bool
 }
-

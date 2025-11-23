@@ -2,7 +2,7 @@ package server
 
 import (
 	"testing"
-	
+
 	"micronet/common"
 )
 

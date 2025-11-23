@@ -3,8 +3,8 @@ package clientServer
 import (
 	"net/rpc"
 
-	"micronet/common"
 	"micronet/client"
+	"micronet/common"
 	"micronet/server"
 )
 

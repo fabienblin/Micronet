@@ -8,7 +8,6 @@ import (
 )
 
 func TestClientCall(t *testing.T) {
-	// Create a sample common.NetConf for testing
 	netConf := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
@@ -21,16 +20,15 @@ func TestClientCall(t *testing.T) {
 		t.Error(err)
 	}
 
-	go func(){
+	go func() {
 		err = server.Start()
 		if err != nil {
 			t.Error(err)
 		}
 	}()
 
-	// Initialize the client
 	client := InitClient(netConf)
-	
+
 	err = client.Dial()
 	if err != nil {
 		t.Error(err)
@@ -62,20 +60,14 @@ func TestClientReconnect(t *testing.T) {
 		t.Error(err)
 	}
 
-	go func(){
+	go func() {
 		err = server.Start()
 		if err != nil {
 			t.Error(err)
 		}
 	}()
 
-	// Initialize the client
 	client := InitClient(netConf)
-	
-	// err = client.Dial()
-	// if err != nil {
-	// 	t.Error(err)
-	// }
 
 	err = client.Ping()
 	if _, ok := err.(common.MicronetReconnectTimeoutError); ok {
@@ -98,23 +90,16 @@ func TestClientCallTimeout(t *testing.T) {
 	}
 	var err error
 
-	// Initialize the client
 	client := InitClient(netConf)
-	
-	// err = client.Dial()
-	// if err != nil {
-	// 	t.Error(err)
-	// }
 
 	err = client.Ping()
 	e, ok := err.(*common.MicronetReconnectTimeoutError)
-	if !ok && e != nil{
+	if !ok && e != nil {
 		t.Error(err)
 	}
 }
 
 func TestClientGo(t *testing.T) {
-	// Create a sample common.NetConf for testing
 	netConf := common.NetConf{
 		Protocol: "tcp",
 		Ip:       "localhost",
@@ -127,16 +112,15 @@ func TestClientGo(t *testing.T) {
 		t.Error(err)
 	}
 
-	go func(){
+	go func() {
 		err = server.Start()
 		if err != nil {
 			t.Error(err)
 		}
 	}()
 
-	// Initialize the client
 	client := InitClient(netConf)
-	
+
 	err = client.Dial()
 	if err != nil {
 		t.Error(err)
@@ -158,8 +142,6 @@ func TestClientGo(t *testing.T) {
 	server.Stop()
 }
 
-
-
 func TestClientGoTimeout(t *testing.T) {
 	netConf := common.NetConf{
 		Protocol: "tcp",
@@ -168,19 +150,13 @@ func TestClientGoTimeout(t *testing.T) {
 	}
 	var err error
 
-	// Initialize the client
 	client := InitClient(netConf)
-	
-	// err = client.Dial()
-	// if err != nil {
-	// 	t.Error(err)
-	// }
 
 	request := common.Ping{Data: "PING"}
 	response := common.Pong{}
 	call := client.Go("PingHandler.Ping", &request, &response, nil)
 	e, ok := call.Error.(*common.MicronetReconnectTimeoutError)
-	if !ok && e != nil{
+	if !ok && e != nil {
 		t.Error(err)
 	}
 }

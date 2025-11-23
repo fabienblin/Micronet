@@ -1,4 +1,4 @@
-package micronet
+package clientServer
 
 import "net/rpc"
 

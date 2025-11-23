@@ -1,4 +1,4 @@
-package micronet
+package common
 
 type NetConf struct {
 	Name     string

@@ -1,4 +1,4 @@
-package micronet
+package common
 
 import (
 	"fmt"

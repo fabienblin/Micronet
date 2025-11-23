@@ -1,4 +1,4 @@
-package micronet
+package server
 
 import (
 	"context"

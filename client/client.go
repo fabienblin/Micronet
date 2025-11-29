@@ -98,36 +98,61 @@ func (c *Client) Call(serviceMethod string, request any, response any) error {
  * @param serviceMethod is the remote's "handler.function" to call
  * @param request is the derefenced request of any type
  * @param response is the derefenced response of any type
- * @param done channel will signal when the call is complete by returning the same Call object. If done is nil, Go will allocate a new channel. If non-nil, done must be buffered or Go will deliberately crash
+ * @param done channel will signal when the call is complete by returning the same Call object.
+ * 		If done is nil, Go will allocate a new channel.
+ * 		If non-nil, done must be buffered or Go will deliberately crash
  * @return the done channel
  */
 func (c *Client) Go(serviceMethod string, request any, response any, done chan *rpc.Call) *rpc.Call {
 	if c.Client == nil {
-		return &rpc.Call{
+		call := &rpc.Call{
 			ServiceMethod: serviceMethod,
 			Args:          request,
 			Reply:         response,
 			Error:         fmt.Errorf("nil client"),
-			Done:          nil,
+			Done:          make(chan *rpc.Call, 1),
 		}
-	}
-
-	call := c.Client.Go(serviceMethod, request, response, done)
-	if call.Error == nil {
+		call.Done <- call
 		return call
 	}
 
-	if errReconnect := c.reconnect(); errReconnect != nil {
-		return &rpc.Call{
-			ServiceMethod: serviceMethod,
-			Args:          request,
-			Reply:         response,
-			Error:         errReconnect,
-			Done:          nil,
-		}
+	// first async attempt
+	origCall := c.Client.Go(serviceMethod, request, response, done)
+
+	// The call returned to the user
+	wrappedCall := &rpc.Call{
+		ServiceMethod: serviceMethod,
+		Args:          request,
+		Reply:         response,
+		Done:          make(chan *rpc.Call, 1),
 	}
 
-	return c.Client.Go(serviceMethod, request, response, done)
+	go func() {
+		result := <-origCall.Done
+
+		// If first attempt succeeded
+		if result.Error == nil {
+			wrappedCall.Error = nil
+			wrappedCall.Done <- wrappedCall
+			return
+		}
+
+		// Try reconnect
+		if err := c.reconnect(); err != nil {
+			wrappedCall.Error = result.Error // propagate error
+			wrappedCall.Done <- wrappedCall
+			return
+		}
+
+		// Retry
+		retryCall := c.Client.Go(serviceMethod, request, response, nil)
+		retryResult := <-retryCall.Done
+
+		wrappedCall.Error = retryResult.Error // propagate retry error
+		wrappedCall.Done <- wrappedCall
+	}()
+
+	return wrappedCall
 }
 
 /**
@@ -138,19 +163,12 @@ func (c *Client) Close() error {
 		return fmt.Errorf("nil client")
 	}
 
-	var deferedError error
-	defer func() {
-		if r := recover(); r != nil {
-			deferedError = fmt.Errorf("%v", r)
-		}
-	}()
-
 	err := c.Client.Close()
 	if err != nil {
 		return err
 	}
 
-	return deferedError
+	return nil
 }
 
 /**

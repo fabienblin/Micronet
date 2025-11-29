@@ -161,7 +161,6 @@ func TestClient_Call(t *testing.T) {
 			t.Fatal(errListen)
 		}
 
-		// Serve RPC manually so we can grab the connection
 		var serverConn net.Conn
 		var serverConnMu sync.Mutex
 		go func() {
@@ -179,17 +178,17 @@ func TestClient_Call(t *testing.T) {
 		time.Sleep(ListenReadynessDuration)
 
 		client, errDial := NewClient(netConf)
-		client.SetReconnectionConf(0, 0) // no retry
+		client.SetReconnectionConf(0, 0)
 		assert.NoError(t, errDial)
 
 		request := true
 		var response int
 
 		// ---- Force next Call() to fail ----
-		listener.Close() // stop accepting new connections
+		listener.Close()
 		serverConnMu.Lock()
 		if serverConn != nil {
-			serverConn.Close() // close the active RPC connection
+			serverConn.Close()
 		}
 		serverConnMu.Unlock()
 		// -----------------------------------
@@ -197,6 +196,72 @@ func TestClient_Call(t *testing.T) {
 		errCall := client.Call("MockService.MockMethod", request, &response)
 
 		assert.Error(t, errCall)
+	})
+
+	t.Run("Reconnection success", func(t *testing.T) {
+		mockServer := rpc.NewServer()
+
+		mockService := &MockService{}
+		err := mockServer.Register(mockService)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		listener, errListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errListen != nil {
+			t.Fatal(errListen)
+		}
+
+		var serverConn net.Conn
+		var serverConnMu sync.Mutex
+		go func() {
+			for {
+				conn, err := listener.Accept()
+				if err != nil {
+					return
+				}
+				serverConnMu.Lock()
+				serverConn = conn
+				serverConnMu.Unlock()
+				go mockServer.ServeConn(conn)
+			}
+		}()
+		time.Sleep(ListenReadynessDuration)
+
+		client, errDial := NewClient(netConf)
+		assert.NoError(t, errDial)
+
+		request := true
+		var response int
+
+		// ---- Force next Call() to fail ----
+		listener.Close()
+		serverConnMu.Lock()
+		if serverConn != nil {
+			serverConn.Close()
+		}
+		serverConnMu.Unlock()
+		// ------- Create a new server -------
+		secondMockServer := rpc.NewServer()
+
+		secondMockService := &MockService{}
+		errSecondRegister := secondMockServer.Register(secondMockService)
+		if errSecondRegister != nil {
+			t.Fatal(errSecondRegister)
+		}
+
+		secondListener, errSecondListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errSecondListen != nil {
+			t.Fatal(errSecondListen)
+		}
+		defer secondListener.Close()
+		go secondMockServer.Accept(secondListener)
+		time.Sleep(ListenReadynessDuration)
+		// -----------------------------------
+
+		errCall := client.Call("MockService.MockMethod", request, &response)
+
+		assert.NoError(t, errCall)
 	})
 
 	t.Run("Nominal case", func(t *testing.T) {
@@ -225,6 +290,241 @@ func TestClient_Call(t *testing.T) {
 		errCall := client.Call("MockService.MockMethod", request, &response)
 
 		assert.NoError(t, errCall)
+		assert.Equal(t, MockMethodResponseValue, response)
+	})
+}
+
+func TestClient_Go(t *testing.T) {
+	t.Run("Invalid service method", func(t *testing.T) {
+		mockServer := rpc.NewServer()
+
+		mockService := &MockService{}
+		err := mockServer.Register(mockService)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		listener, errListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errListen != nil {
+			t.Fatal(errListen)
+		}
+		defer listener.Close()
+		go mockServer.Accept(listener)
+		time.Sleep(ListenReadynessDuration)
+
+		client, errDial := NewClient(netConf)
+		assert.NoError(t, errDial)
+
+		doneChan := client.Go("unRegisteredMethod", nil, nil, nil)
+		<-doneChan.Done
+
+		assert.Error(t, doneChan.Error)
+	})
+
+	t.Run("Invalid request type", func(t *testing.T) {
+		mockServer := rpc.NewServer()
+
+		mockService := &MockService{}
+		err := mockServer.Register(mockService)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		listener, errListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errListen != nil {
+			t.Fatal(errListen)
+		}
+		defer listener.Close()
+		go mockServer.Accept(listener)
+		time.Sleep(ListenReadynessDuration)
+
+		client, errDial := NewClient(netConf)
+		assert.NoError(t, errDial)
+
+		request := "true"
+		var response int
+
+		doneChan := client.Go("MockService.MockMethod", request, &response, nil)
+		<-doneChan.Done
+
+		assert.Error(t, doneChan.Error)
+	})
+
+	t.Run("Invalid response type", func(t *testing.T) {
+		mockServer := rpc.NewServer()
+
+		mockService := &MockService{}
+		err := mockServer.Register(mockService)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		listener, errListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errListen != nil {
+			t.Fatal(errListen)
+		}
+		defer listener.Close()
+		go mockServer.Accept(listener)
+		time.Sleep(ListenReadynessDuration)
+
+		client, errDial := NewClient(netConf)
+		assert.NoError(t, errDial)
+
+		request := true
+		var response string
+
+		doneChan := client.Go("MockService.MockMethod", request, &response, nil)
+		<-doneChan.Done
+
+		assert.Error(t, doneChan.Error)
+	})
+
+	t.Run("Connection lost", func(t *testing.T) {
+		mockServer := rpc.NewServer()
+
+		mockService := &MockService{}
+		err := mockServer.Register(mockService)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		listener, errListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errListen != nil {
+			t.Fatal(errListen)
+		}
+
+		var serverConn net.Conn
+		var serverConnMu sync.Mutex
+		go func() {
+			for {
+				conn, err := listener.Accept()
+				if err != nil {
+					return
+				}
+				serverConnMu.Lock()
+				serverConn = conn
+				serverConnMu.Unlock()
+				go mockServer.ServeConn(conn)
+			}
+		}()
+		time.Sleep(ListenReadynessDuration)
+
+		client, errDial := NewClient(netConf)
+		client.SetReconnectionConf(0, 0)
+		assert.NoError(t, errDial)
+
+		request := true
+		var response int
+
+		// ---- Force next Call() to fail ----
+		listener.Close()
+		serverConnMu.Lock()
+		if serverConn != nil {
+			serverConn.Close()
+		}
+		serverConnMu.Unlock()
+		// -----------------------------------
+
+		doneChan := client.Go("MockService.MockMethod", request, &response, nil)
+		<-doneChan.Done
+
+		assert.Error(t, doneChan.Error)
+	})
+
+	t.Run("Reconnection success", func(t *testing.T) {
+		mockServer := rpc.NewServer()
+
+		mockService := &MockService{}
+		err := mockServer.Register(mockService)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		listener, errListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errListen != nil {
+			t.Fatal(errListen)
+		}
+
+		var serverConn net.Conn
+		var serverConnMu sync.Mutex
+		go func() {
+			for {
+				conn, err := listener.Accept()
+				if err != nil {
+					return
+				}
+				serverConnMu.Lock()
+				serverConn = conn
+				serverConnMu.Unlock()
+				go mockServer.ServeConn(conn)
+			}
+		}()
+		time.Sleep(ListenReadynessDuration)
+
+		client, errDial := NewClient(netConf)
+		assert.NoError(t, errDial)
+
+		request := true
+		var response int
+
+		// ---- Force next Call() to fail ----
+		listener.Close()
+		serverConnMu.Lock()
+		if serverConn != nil {
+			serverConn.Close()
+		}
+		serverConnMu.Unlock()
+		// ------- Create a new server -------
+		secondMockServer := rpc.NewServer()
+
+		secondMockService := &MockService{}
+		errSecondRegister := secondMockServer.Register(secondMockService)
+		if errSecondRegister != nil {
+			t.Fatal(errSecondRegister)
+		}
+
+		secondListener, errSecondListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errSecondListen != nil {
+			t.Fatal(errSecondListen)
+		}
+		defer secondListener.Close()
+		go secondMockServer.Accept(secondListener)
+		time.Sleep(ListenReadynessDuration)
+		// -----------------------------------
+
+		doneChan := client.Go("MockService.MockMethod", request, &response, nil)
+		<-doneChan.Done
+
+		assert.NoError(t, doneChan.Error)
+	})
+
+	t.Run("Nominal case", func(t *testing.T) {
+		mockServer := rpc.NewServer()
+
+		mockService := &MockService{}
+		err := mockServer.Register(mockService)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		listener, errListen := net.Listen(netConf.Protocol, netConf.Ip+":"+netConf.Port)
+		if errListen != nil {
+			t.Fatal(errListen)
+		}
+		defer listener.Close()
+		go mockServer.Accept(listener)
+		time.Sleep(ListenReadynessDuration)
+
+		client, errDial := NewClient(netConf)
+		assert.NoError(t, errDial)
+
+		request := true
+		var response int
+
+		doneChan := client.Go("MockService.MockMethod", request, &response, nil)
+		<-doneChan.Done
+
+		assert.NoError(t, doneChan.Error)
 		assert.Equal(t, MockMethodResponseValue, response)
 	})
 }

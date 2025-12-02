@@ -2,14 +2,12 @@ package common
 
 import (
 	"micronet/common"
-	"net/rpc"
 )
 
 // =========================================================
 //                    PUBLISHER MOCKS
 // =========================================================
 
-// MockPublisher implements I_Publisher
 type MockPublisher struct {
 	PublishFunc func(req string)
 }
@@ -53,7 +51,6 @@ func (m *MockPublisherHandler) Unsubscribe(req *common.SubscribeRequest, res *co
 //                   SUBSCRIBER MOCKS
 // =========================================================
 
-// MockSubscriber implements I_Subscriber
 type MockSubscriber struct {
 	SubscribeFunc   func(publisher Publisher) error
 	UnsubscribeFunc func(publisher Publisher) error
@@ -96,7 +93,6 @@ func (m *MockSubscriberHandler) Update(req any, res any) error {
 //            SubscriberClient MOCK (RPC Update)
 // =========================================================
 
-// MockSubscriberClient simulates the RPC client used in Publish()
 type MockSubscriberClient struct {
 	UpdateFunc func(req any, res any) error
 }
@@ -108,14 +104,9 @@ func (m *MockSubscriberClient) Update(req any, res any) error {
 	return nil
 }
 
-// To satisfy how Publisher uses it:
 func (m *MockSubscriberClient) Call(method string, args any, reply any) error {
-	// Only SubscriberHandler.Update is ever used in the real code
 	if m.UpdateFunc != nil {
 		return m.UpdateFunc(args, reply)
 	}
 	return nil
 }
-
-// Prevents compile errors (fake field for compatibility only)
-type _ = rpc.Call

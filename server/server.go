@@ -39,10 +39,9 @@ func NewServer(network common.NetConf) (*Server, error) {
 	srv.Server = rpc.NewServer()
 	srv.ctx, srv.cancelFunction = context.WithCancel(context.Background())
 
-	// Register ping request
-	err := srv.Server.Register(new(common.PingHandler))
-	if err != nil {
-		return nil, err
+	errRegister := srv.Register(new(common.PingHandler))
+	if errRegister != nil {
+		return nil, errRegister
 	}
 
 	return srv, nil
@@ -54,9 +53,9 @@ func NewServer(network common.NetConf) (*Server, error) {
  * @return an potential registration error
  */
 func (s *Server) Register(rcvr any) error {
-	err := s.Server.Register(rcvr)
-	if err != nil {
-		return err
+	errRegister := s.Server.Register(rcvr)
+	if errRegister != nil {
+		return errRegister
 	}
 
 	return nil
@@ -67,28 +66,26 @@ func (s *Server) Register(rcvr any) error {
  * You might consider starting the server in a goroutine
  * @return potential networking errors
  */
-func (s *Server) Start() error {
-	// Create a listener on port 1234
-	listener, err := net.Listen(s.Protocol, ":"+s.Port)
-	if err != nil {
-		return err
+func (s *Server) Start() (error) {
+	listener, errListen := net.Listen(s.Protocol, ":"+s.Port)
+	if errListen != nil {
+		return errListen
 	}
 	defer listener.Close()
 
 	log.Printf("Server is running %+v", s.NetConf)
 
-	// Accept and handle incoming connections
 	for {
 		select {
 		case <-s.ctx.Done():
 			return nil
 		default:
-			conn, err := listener.Accept()
-			if err != nil {
-				log.Printf("Error accepting connection: %s", err)
+			conn, errAccept := listener.Accept()
+			if errAccept != nil {
+				log.Printf("Error accepting connection: %s", errAccept)
 				continue
 			}
-			go s.Server.ServeConn(conn)
+			go s.ServeConn(conn)
 		}
 	}
 }
@@ -97,6 +94,6 @@ func (s *Server) Start() error {
  * Stop the running server
  */
 func (s *Server) Stop() {
-	log.Printf("Stoping sever %+v", s.NetConf)
+	log.Printf("Stoping server %+v", s.NetConf)
 	s.cancelFunction()
 }

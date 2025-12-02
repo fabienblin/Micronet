@@ -4,33 +4,32 @@ import (
 	"testing"
 
 	"micronet/common"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestServerLifecycle(t *testing.T) {
-	// Create a sample NetConf for testing
-	netConf := common.NetConf{
-		Protocol: "tcp",
-		Port:     "12345",
-		Ip:       "localhost",
-	}
-
-	// Initialize the server
-	server, err := NewServer(netConf)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Start the server in a goroutine
-	go server.Start()
-
-	// Perform any necessary assertions or tests here
-
-	// Stop the server
-	server.Stop()
-
-	// Perform any necessary assertions or tests here
-
-	// Additional assertions can be added based on your specific use case
+	t.Run("Nominal case", func(t *testing.T) {
+		netConf := common.NetConf{
+			Protocol: "tcp",
+			Port:     "12345",
+			Ip:       "localhost",
+		}
+	
+		server, errNew := NewServer(netConf)
+		if !assert.NoError(t, errNew) {
+			t.FailNow()
+		}
+	
+		go func(){
+			errStart := server.Start()
+			if !assert.NoError(t, errStart) {
+				return
+			}
+		}()
+	
+		server.Stop()
+	})
 }
 
 // Add more test functions as needed
